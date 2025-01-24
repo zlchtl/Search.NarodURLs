@@ -1,7 +1,9 @@
 import aiohttp
 import asyncio
+import logging
 from itertools import product
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 
 async def check_website_availability(url, retry_interval=5, max_retries=1, timeout=1) -> str | None:
     """Асинхронная функция проверки адреса сайта с повторной проверкой."""
@@ -13,6 +15,7 @@ async def check_website_availability(url, retry_interval=5, max_retries=1, timeo
             async with aiohttp.ClientSession(timeout=timeout_settings) as session:
                 async with session.get(url) as response:
                     if response.status == 200:
+                        logging.info(f"{url} - 200")
                         return url
                     return None
         except asyncio.TimeoutError:
@@ -21,8 +24,10 @@ async def check_website_availability(url, retry_interval=5, max_retries=1, timeo
                 return None
             await asyncio.sleep(retry_interval)
         except aiohttp.ClientError as e:
+            logging.error(f"ClientError {url}: {e}")
             return f"ClientError {url}: {e}"
         except Exception as e:
+            logging.error(f"Unexpected error {url}: {e}")
             return f"Unexpected error {url}: {e}"
 
 
@@ -31,11 +36,9 @@ async def main():
     urls_packs = create_urls(n=4, chunk_size=2000, start_from="aaaa")
 
     for urls_pack in urls_packs:
-        print(urls_pack)
         tasks = [check_website_availability(url) for url in urls_pack]
         results = await asyncio.gather(*tasks)
         output(results)
-        print(results)
         await asyncio.sleep(1)
 
 
@@ -58,7 +61,7 @@ def create_urls(n=4, chunk_size=2000, start_from=None):
             raise ValueError(f"Начальная комбинация '{start_from}' отсутствует в данных.")
 
     data = data[start_index:]
-    print(f"Общее количество комбинаций: {len(data)}")
+    logging.info(f"Общее количество комбинаций: {len(data)}")
     return [data[i:i + chunk_size] for i in range(0, len(data), chunk_size)]
 
 
